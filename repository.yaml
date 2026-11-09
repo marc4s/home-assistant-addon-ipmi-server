@@ -1,5 +1,5 @@
 ---
 # https://developers.home-assistant.io/docs/add-ons/repository#repository-configuration
 name: Home Assistant Add-on - IPMItool server
-url: "https://github.com/ateodorescu/home-assistant-addons"
-maintainer: Adrian Teodorescu <ateodorescu@gmail.com>
+url: "https://github.com/marc4s/home-assistant-addons"
+maintainer: Marc4s <marc4s@gmail.com>
