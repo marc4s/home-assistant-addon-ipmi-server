@@ -32,6 +32,41 @@ class IpmiController
     private array $debug = [];
     private string $password = '';
     private string $kgKey = '';
+    
+    /**
+     * Add debug message to the debug array.
+     */
+    private function addDebug(string $message): void
+    {
+        $this->debug[] = $message;
+        error_log('[IPMI Debug] ' . $message);
+    }
+    
+    /**
+     * Add debug message with data (will anonymize secrets).
+     */
+    private function addDebugWithData(string $message, array $data = []): void
+    {
+        $dataStr = $data ? ' ' . json_encode($this->anonymizeDebugData($data)) : '';
+        $this->addDebug($message . $dataStr);
+    }
+    
+    /**
+     * Anonymize data for debugging (replace secrets with ####).
+     */
+    private function anonymizeDebugData(array $data): array
+    {
+        $anonymized = [];
+        foreach ($data as $key => $value) {
+            $lowerKey = strtolower($key);
+            if (in_array($lowerKey, ['password', 'passwd', 'pass', 'pwd', 'secret', 'key', 'kg_key', 'kgkey'])) {
+                $anonymized[$key] = is_string($value) ? str_repeat('*', strlen($value)) : $value;
+            } else {
+                $anonymized[$key] = $value;
+            }
+        }
+        return $anonymized;
+    }
     // Hard ceiling per ipmitool invoke. Keep below nginx/php-fpm (120s).
     const COMMAND_TIMEOUT = 45;
     const DEFAULT_PORT = 623;
@@ -62,22 +97,35 @@ class IpmiController
             return new RedirectResponse('/ui');
         }
 
+        // DEBUG: Log the incoming request details
+        $this->addDebug('=== INCOMING REQUEST DEBUG ===');
+        $this->addDebug('Method: ' . $request->getMethod());
+        $this->addDebug('URI: ' . $request->getUri());
+        $this->addDebug('Query params: ' . json_encode($request->query->all()));
+        $this->addDebug('Request headers: ' . json_encode($request->headers->all()));
+        
         if (empty($request->query->get('host'))) {
+            $this->addDebug('Request rejected: No host provided');
             return $this->finalizeJsonResponse([
                 'success' => false,
                 'message' => 'No hostname provided! Open /ui for the web UI, or pass ?host=... for the JSON API.',
             ]);
         }
 
+        $this->addDebug('=== PROCESSING REQUEST ===');
         $this->hydrateSecrets($request);
         $requestedTypes = $this->parseRequestedSensorTypes($request);
+        $this->addDebug('Requested types: ' . json_encode($requestedTypes));
         $info = $this->getDeviceInfo($request, $requestedTypes);
+        
+        $this->addDebug('Device info result: ' . json_encode($info));
 
         if ($info['success']) {
             if ($this->isPowerOnlyPoll($requestedTypes)) {
                 $info = array_merge($info, $this->emptySensorPayload());
             } else {
                 $sensors = $this->getSensors($request, $requestedTypes);
+                $this->addDebug('Sensors result: ' . json_encode($sensors));
                 if (!empty($sensors['success'])) {
                     $info['sensors'] = $sensors['sensors'] ?? $this->emptySensorBuckets();
                     $info['states'] = $sensors['states'] ?? [];
@@ -91,7 +139,13 @@ class IpmiController
                     }
                 }
             }
+        } else {
+            $this->addDebug('Device info failed: ' . ($info['message'] ?? 'unknown'));
         }
+
+        $this->addDebug('=== FINAL RESPONSE ===');
+        $this->addDebug('Response success: ' . ($info['success'] ? 'true' : 'false'));
+        $this->addDebug('Response message: ' . ($info['message'] ?? 'none'));
 
         return $this->finalizeJsonResponse($info);
     }
@@ -182,12 +236,18 @@ class IpmiController
      */
     private function finalizeJsonResponse(array $payload): JsonResponse
     {
+        $this->addDebug('=== FINALIZE JSON RESPONSE DEBUG ===');
+        $this->addDebug('Payload before merge: ' . json_encode($payload));
+        
         $payload = array_merge($this->apiMetadata(), $payload);
         $payload['debug'] = implode("\n", $this->debug);
 
         if (array_key_exists('message', $payload)) {
             $payload['message'] = $this->anonymizeSecrets((string) $payload['message']);
         }
+
+        $this->addDebug('Final response success: ' . ($payload['success'] ? 'true' : 'false'));
+        $this->addDebug('Final response message: ' . ($payload['message'] ?? 'none'));
 
         return new JsonResponse($payload);
     }
@@ -366,23 +426,33 @@ class IpmiController
 
     private function hydrateSecrets(Request $request): void
     {
+        $this->addDebug('=== HYDRATE SECRETS DEBUG ===');
+        $this->addDebug('Request method: ' . $request->getMethod());
+        
         $this->password = $this->getSecret($request, 'password', self::PASSWORD_HEADER);
         $this->kgKey = $this->getSecret($request, 'kg_key', self::KG_KEY_HEADER);
+        
+        $this->addDebug('Password set: ' . ($this->password !== '' ? 'YES (length: ' . strlen($this->password) . ')' : 'NO'));
+        $this->addDebug('KG Key set: ' . ($this->kgKey !== '' ? 'YES (length: ' . strlen($this->kgKey) . ')' : 'NO'));
     }
-
+    
     private function getSecret(Request $request, string $field, string $header): string
     {
         $fromHeader = $request->headers->get($header);
         if (is_string($fromHeader) && $fromHeader !== '') {
+            $this->addDebug("Secret '$field' found in header");
             return $fromHeader;
         }
 
         $fromBody = $request->request->get($field);
         if (is_string($fromBody) && $fromBody !== '') {
+            $this->addDebug("Secret '$field' found in request body");
             return $fromBody;
         }
 
-        return trim((string) $request->query->get($field, ''));
+        $fromQuery = trim((string) $request->query->get($field, ''));
+        $this->addDebug("Secret '$field' from query: " . ($fromQuery !== '' ? 'FOUND (length: ' . strlen($fromQuery) . ')' : 'NOT FOUND'));
+        return $fromQuery;
     }
 
     /**
@@ -494,14 +564,19 @@ class IpmiController
 
     private function runCommand($command, $ignoreErrors = false): bool|string
     {
+        $this->addDebug('=== RUN COMMAND DEBUG ===');
+        $this->addDebug('Command: ' . json_encode($command));
+        
         $result = $this->executeIpmiCommand($command, $ignoreErrors);
         if ($result !== false) {
+            $this->addDebug('Command succeeded on first attempt');
             return $result;
         }
 
         // Super Micro / OpenSSL 3: try common RMCP+ cipher suites when default fails.
         // Suite 17 is modern but often unsupported; 3/8/12 are common on older BMCs.
         if (\in_array('lanplus', $command, true) && !\in_array('-C', $command, true)) {
+            $this->addDebug('Trying cipher suites as fallback...');
             foreach ([3, 8, 12, 17, 15, 16, 6, 7, 11, 1, 2] as $cipher) {
                 $retry = $command;
                 $lanplusIdx = array_search('lanplus', $retry, true);
@@ -509,10 +584,18 @@ class IpmiController
                     break;
                 }
                 array_splice($retry, $lanplusIdx + 1, 0, ['-C', (string) $cipher]);
+                $this->addDebug('Trying cipher ' . $cipher . '...');
                 $result = $this->executeIpmiCommand($retry, true);
                 if ($result !== false) {
+                    $this->addDebug('Command succeeded with cipher ' . $cipher);
                     return $result;
                 }
+                $this->addDebug('Cipher ' . $cipher . ' failed');
+            }
+            $this->addDebug('All cipher attempts failed');
+        } else {
+            if (\in_array('-C', $command, true)) {
+                $this->addDebug('Cipher already specified in command, not retrying');
             }
         }
 
@@ -525,6 +608,11 @@ class IpmiController
     private function executeIpmiCommand(array $command, bool $ignoreErrors = false): bool|string
     {
         $errorIntro = "Error occurred when running \"" . implode(" ", array_map($this->anonymizeSecrets(...), $command)) . "\".\n" ;
+        
+        $this->addDebug('=== EXECUTE IPMI COMMAND DEBUG ===');
+        $this->addDebug('Command: ' . json_encode($command));
+        $this->addDebug('Command timeout: ' . self::COMMAND_TIMEOUT . ' seconds');
+        $this->addDebug('Working directory: ' . sys_get_temp_dir());
 
         try {
             $proc = new Process($command);
@@ -535,13 +623,22 @@ class IpmiController
             $env = [];
             if (is_readable($opensslConf)) {
                 $env['OPENSSL_CONF'] = $opensslConf;
+                $this->addDebug('OPENSSL_CONF set to: ' . $opensslConf);
             }
+            $this->addDebug('Running ipmitool command...');
             $proc->run(null, $env);
             $output = $proc->getOutput();
             $exitCode = $proc->getExitCode();
+            
+            $this->addDebug('Command exit code: ' . $exitCode);
+            $this->addDebug('Command output length: ' . strlen($output) . ' bytes');
+            $this->addDebug('Command error output: ' . $proc->getErrorOutput());
+            $this->addDebug('Command output (first 500 chars): ' . substr($output, 0, 500));
 
             if ($exitCode) {
                 $message = $this->anonymizeSecrets($errorIntro.$proc->getErrorOutput());
+                $this->addDebug('Command failed with exit code: ' . $exitCode);
+                $this->addDebug($message);
                 $this->debug[] = $message;
 
                 if (!$ignoreErrors) {
@@ -554,6 +651,8 @@ class IpmiController
         catch (\Exception $exception) {
             // let's log this error
             $message = $this->anonymizeSecrets($errorIntro . $exception->getMessage());
+            $this->addDebug('Exception caught: ' . get_class($exception));
+            $this->addDebug($message);
             $this->debug[] = $message;
 
             if (!$ignoreErrors) {
@@ -563,11 +662,20 @@ class IpmiController
             return false;
         }
 
+        $this->addDebug('Command executed successfully');
         return $output;
     }
 
     private function getCommand(Request $request): array|bool
     {
+        $this->addDebug('=== GET COMMAND DEBUG ===');
+        $this->addDebug('Request host: ' . $request->query->get('host'));
+        $this->addDebug('Request port: ' . $request->query->get('port', self::DEFAULT_PORT));
+        $this->addDebug('Request user: ' . $request->query->get('user', ''));
+        $this->addDebug('Request interface: ' . $request->query->get('interface', ''));
+        $this->addDebug('Request privilege_level: ' . $request->query->get('privilege_level', ''));
+        $this->addDebug('Request extra: ' . $request->query->get('extra', ''));
+        
         $this->hydrateSecrets($request);
         $query = $request->query;
         $host = $query->get('host');
@@ -628,12 +736,16 @@ class IpmiController
 
     private function getDeviceInfo(Request $request, ?array $requestedTypes = null): array
     {
+        $this->addDebug('=== GET DEVICE INFO DEBUG ===');
+        $this->addDebug('Requested types: ' . json_encode($requestedTypes));
+        
         $response = [
             'success' => false,
             'message' => 'Wrong connection data provided!'
         ];
 
         $interface = $request->query->get('interface', '');
+        $this->addDebug('Interface from request: ' . ($interface ?: 'auto (will try all)'));
 
         if (empty($interface)) {
             foreach ($this->ipmiTypes as $interface) {
@@ -653,6 +765,9 @@ class IpmiController
 
     private function getDeviceInfoByInterface(Request $request, string $interface, ?array $requestedTypes = null): array
     {
+        $this->addDebug('=== GET DEVICE INFO BY INTERFACE DEBUG ===');
+        $this->addDebug('Processing interface: ' . $interface);
+        
         $response = [
             'success' => false
         ];
@@ -660,6 +775,8 @@ class IpmiController
         $cmd = $this->getCommand($request);
         $on = false;
         $error = 'Wrong connection data provided!';
+        
+        $this->addDebug('Command built: ' . json_encode($cmd));
 
         if ($cmd === false) {
             $response['message'] = empty($request->query->get('host'))
@@ -668,14 +785,20 @@ class IpmiController
         }
         else {
             try {
+                $this->addDebug('Running bmc info command...');
                 $ret = $this->runCommand(array_merge($cmd, ['-I', $interface, 'bmc', 'info']));
+                $this->addDebug('bmc info result: ' . ($ret !== false ? 'SUCCESS' : 'FAILED'));
 
                 if ($ret) {
                     $results = explode(PHP_EOL, $ret);
+                    $this->addDebug('bmc info lines count: ' . count($results));
                     $device = $this->extractValuesFromResults($results);
+                    $this->addDebug('Device info extracted: ' . json_encode($device));
 
                     if (!$this->shouldSkipFru($requestedTypes)) {
+                        $this->addDebug('Running fru command...');
                         $ret = $this->runCommand(array_merge($cmd, ['-I', $interface, 'fru']));
+                        $this->addDebug('fru result: ' . ($ret !== false ? 'SUCCESS' : 'FAILED'));
 
                         if ($ret) {
                             $results = explode(PHP_EOL, $ret);
@@ -683,10 +806,12 @@ class IpmiController
                         }
                     }
 
+                    $this->addDebug('Running chassis power status command...');
                     $ret = $this->runCommand(array_merge($cmd, ['-I', $interface, 'chassis', 'power', 'status']));
 
                     if ($ret) {
                         $on = (trim($ret) === "Chassis Power is on");
+                        $this->addDebug('Chassis power status: ' . ($on ? 'ON' : 'OFF'));
                     }
 
                     $response['success'] = true;
@@ -698,45 +823,63 @@ class IpmiController
                 }
 
             } catch (\Exception $exception) {
+                $this->addDebug('Exception in getDeviceInfoByInterface: ' . $exception->getMessage());
                 $response['message'] = $exception->getMessage();
             }
         }
 
+        $this->addDebug('getDeviceInfoByInterface returning: ' . json_encode($response));
         return $response;
     }
 
     private function extractValuesFromResults($results): array
     {
+        $this->addDebug('=== EXTRACT VALUES FROM RESULTS DEBUG ===');
+        $this->addDebug('Input results count: ' . count($results));
+        $this->addDebug('Input results (first 3): ' . json_encode(array_slice($results, 0, 3)));
+        
         $data = [];
         $results = array_values(array_filter($results, function ($line) {
             return str_contains($line, ':');
         }));
+        
+        $this->addDebug('Results after filtering (with colon): ' . count($results));
 
         if (!empty($results)) {
             foreach ($results as $result) {
                 if (!empty($result)) {
                     $values = array_map('trim', explode(':', $result, 2));
+                    $this->addDebug('Processing result: ' . substr($result, 0, 50) . '...');
+                    $this->addDebug('Values array: ' . json_encode($values));
+                    
                     $description = $values[0] ?? '';
                     $value = $values[1] ?? '';
 
                     if (!empty($value)) {
-                        $data[$this->generateId($description)] = $value;
+                        $id = $this->generateId($description);
+                        $this->addDebug("Added: '$description' => '$value' (id: $id)");
+                        $data[$id] = $value;
                     }
                 }
             }
         }
 
+        $this->addDebug('Total items extracted: ' . count($data));
         return $data;
     }
 
     private function getSensors(Request $request, ?array $requestedTypes = null): array
     {
+        $this->addDebug('=== GET SENSORS DEBUG ===');
+        $this->addDebug('Requested sensor types: ' . json_encode($requestedTypes));
+        
         $response = [
             'success' => false,
             'message' => 'Wrong connection data provided!'
         ];
 
         $interface = $request->query->get('interface', '');
+        $this->addDebug('Interface: ' . ($interface ?: 'auto'));
 
         if (empty($interface)) {
             foreach ($this->ipmiTypes as $interface) {
@@ -756,6 +899,9 @@ class IpmiController
 
     private function getSensorsByInterface(Request $request, string $interface, ?array $requestedTypes = null): array
     {
+        $this->addDebug('=== GET SENSORS BY INTERFACE DEBUG ===');
+        $this->addDebug('Processing interface: ' . $interface);
+        
         $response = [
             'success' => false
         ];
@@ -769,20 +915,27 @@ class IpmiController
         }
 
         $cmd = $this->getCommand($request);
+        
+        $this->addDebug('Command: ' . json_encode($cmd));
 
         if ($cmd !== false) {
             try {
                 $sdrOk = true;
                 if ($this->shouldRunSdr($requestedTypes)) {
+                    $this->addDebug('Running SDR command...');
                     $sdrOk = $this->extractFromSdrCommand($cmd, $interface, $sensorData, $states, $statuses, $requestedTypes);
+                    $this->addDebug('SDR command result: ' . ($sdrOk ? 'SUCCESS' : 'FAILED'));
                 }
                 // DCMI is optional; skip it when SDR was required and failed so
                 // auto-detect can try the next interface without another timeout.
                 if ($sdrOk && $this->shouldRunDcmi($requestedTypes)) {
+                    $this->addDebug('Running DCMI command...');
                     $this->extractFromDcmiPowerReadingCommand($cmd, $interface, $sensorData, $states, $requestedTypes);
+                    $this->addDebug('DCMI command completed');
                 }
                 $response['success'] = $sdrOk;
             } catch (\Exception $exception) {
+                $this->addDebug('Exception in getSensorsByInterface: ' . $exception->getMessage());
                 $response['message'] = $exception->getMessage();
             }
         }
@@ -790,6 +943,11 @@ class IpmiController
         $response['sensors'] = $sensorData;
         $response['states'] = $states;
         $response['statuses'] = $statuses;
+
+        $this->addDebug('Sensors found: ' . count($sensorData) . ' total');
+        foreach ($sensorData as $type => $data) {
+            $this->addDebug('  ' . $type . ': ' . count($data) . ' sensors');
+        }
 
         return $response;
     }
@@ -845,17 +1003,26 @@ class IpmiController
         ?array $requestedTypes = null
     ): bool
     {
+        $this->addDebug('=== EXTRACT FROM SDR COMMAND DEBUG ===');
+        $this->addDebug('Running SDR list full command...');
         $ret = $this->runCommand(array_merge($cmd, ['-I', $interface, 'sdr', 'list', 'full']), true);
+        $this->addDebug('SDR list result: ' . ($ret !== false ? 'SUCCESS' : 'FAILED'));
 
         if ($ret) {
             $lines = explode(PHP_EOL, $ret);
+            $this->addDebug('SDR lines count: ' . count($lines));
+            $this->addDebug('First 5 lines: ' . json_encode(array_slice($lines, 0, 5)));
 
             if (!empty($lines)) {
                 foreach ($lines as $line) {
                     if (!empty($line)) {
                         $values = array_map('trim', explode('|', $line));
+                        
+                        $this->addDebug('Processing SDR line: ' . substr($line, 0, 60) . '...');
+                        $this->addDebug('Values: ' . json_encode($values));
 
                         if (count($values) < 3 || !$this->hasUsableSensorReading($values[1])) {
+                            $this->addDebug('SKIPPED: insufficient values or no usable reading');
                             continue;
                         }
 
@@ -882,6 +1049,7 @@ class IpmiController
                                 $sensorData[$type][$id] = $description;
                                 $states[$id] = $value;
                                 $statuses[$id] = $status;
+                                $this->addDebug("Added SDR sensor: $description ($type)");
                             }
                         }
                     }
@@ -889,6 +1057,7 @@ class IpmiController
             }
         }
 
+        $this->addDebug('Total SDR sensors extracted: ' . count($sensorData));
         return $ret !== false;
     }
 
@@ -900,11 +1069,16 @@ class IpmiController
         ?array $requestedTypes = null
     ): void
     {
+        $this->addDebug('=== EXTRACT FROM DCMI POWER DEBUG ===');
+        $this->addDebug('Running DCMI power reading command...');
         $ret = $this->runCommand(array_merge($cmd, ['-I', $interface, 'dcmi', 'power', 'reading']), true);
+        $this->addDebug('DCMI result: ' . ($ret !== false ? 'SUCCESS' : 'FAILED'));
 
         if ($ret) {
+            $this->addDebug('DCMI output: ' . $ret);
             // extract power usage from servers that support this command
             $results = explode(PHP_EOL, $ret);
+            $this->addDebug('DCMI results count: ' . count($results));
 
             if (!empty($results)) {
                 foreach ($results as $result) {
