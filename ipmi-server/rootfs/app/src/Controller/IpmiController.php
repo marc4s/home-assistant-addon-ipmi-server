@@ -614,8 +614,10 @@ class IpmiController
         if (!empty($extra)) {
             // If extra contains multiple arguments, parse them properly
             $extraArgs = str_getcsv($extra, ' ', '"', '');
+            // Filter out empty elements and validate each argument
             foreach ($extraArgs as $arg) {
-                if (!empty($arg)) {
+                $arg = trim($arg);
+                if ($arg !== '') {
                     $cmd[] = $arg;
                 }
             }
@@ -713,8 +715,9 @@ class IpmiController
         if (!empty($results)) {
             foreach ($results as $result) {
                 if (!empty($result)) {
-                    $values = array_map('trim', explode(':', $result));
-                    [$description, $value] = $values;
+                    $values = array_map('trim', explode(':', $result, 2));
+                    $description = $values[0] ?? '';
+                    $value = $values[1] ?? '';
 
                     if (!empty($value)) {
                         $data[$this->generateId($description)] = $value;
@@ -914,9 +917,9 @@ class IpmiController
                                 continue;
                             }
 
-                            $values = array_map('trim', explode(':', $result));
-                            $description = $values[0];
-                            $value = $values[1];
+                            $values = array_map('trim', explode(':', $result, 2));
+                            $description = $values[0] ?? '';
+                            $value = $values[1] ?? '';
                             $value = trim(str_replace('Watts', '', $value));
                             $extract = true;
                         } else if (str_contains($result, 'Seconds')) {
