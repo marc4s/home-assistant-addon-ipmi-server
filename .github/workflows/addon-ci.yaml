@@ -1,0 +1,24 @@
+---
+# Backwards compatibility wrapper - use app-ci.yaml for new projects
+name: CI
+
+# yamllint disable-line rule:truthy
+on:
+  workflow_call:
+    inputs:
+      slug:
+        description: Overrides the detected slug
+        required: false
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+  packages: read
+  security-events: write
+
+jobs:
+  ci:
+    uses: ./.github/workflows/app-ci.yaml
+    with:
+      slug: ${{ inputs.slug }}
