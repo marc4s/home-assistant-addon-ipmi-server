@@ -1,0 +1,10 @@
+{
+  "name": "ipmitoolserver-standalone",
+  "version": "2.7.7_beta",
+  "description": "A reverse proxy for Home Assistant",
+  "url": "https://github.com/marc4s/home-assistant-addons",
+  "arch": ["aarch64", "amd64"],
+  "image": "marc4s/marc4s/ipmi-server-standalone:latest",
+  "startup": "services",
+  "options": {}
+}
