@@ -15,16 +15,19 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
     LANG=C.UTF-8 \
     APP_DIR="/app"
 
+# Copy custom build files into a temporary container staging directory
+COPY build/ /tmp/build-files/
+
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 
-# ✅ Copy your custom files BEFORE the build
-COPY build/Makefile.am /tmp/ipmitool/Makefile.am
-COPY build/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
+###  Copy your custom files BEFORE the build
+#COPY build/Makefile.am /tmp/ipmitool/Makefile.am
+#COPY build/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
 
-# Set working directory
-WORKDIR /tmp/ipmitool
+### Set working directory
+#WORKDIR /tmp/ipmitool
 
 
 
@@ -54,8 +57,9 @@ RUN apk update && \
     curl -fsSL -o /tmp/ipmitool.tar.gz \
         "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" && \
     mkdir -p /tmp/ipmitool && \
-    cp /build/* /tmp/impitool/ && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
+    cp /tmp/build-files/* /tmp/ipmitool/ && \
+    rm -rf /tmp/build-files && \
     cd /tmp/ipmitool && \
     ./bootstrap && \
     ./configure \
