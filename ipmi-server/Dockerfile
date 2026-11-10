@@ -21,21 +21,7 @@ COPY build/ /tmp/build-files/
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-
-###  Copy your custom files BEFORE the build
-#COPY build/Makefile.am /tmp/ipmitool/Makefile.am
-#COPY build/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
-
-### Set working directory
-#WORKDIR /tmp/ipmitool
-
-
-
 # Build ipmitool from source so we control OpenSSL/lanplus linking.
-# Do NOT use --enable-internal-md5: that makes configure skip libcrypto and
-# disables the lanplus (IPMI v2 / RMCP+) interface entirely.
-# Build before php84-openssl is installed so Alpine OpenSSL headers/libs are
-# not confused by the PHP extension stack during configure/link.
 # hadolint ignore=DL3003,DL3018
 RUN apk update && \
     apk add --no-cache \
