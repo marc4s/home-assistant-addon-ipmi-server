@@ -1,0 +1,31 @@
+---
+name: "IPMItool server native"
+version: "2.7.7"
+slug: "ipmi-server"
+description: "IPMItool server native"
+url: "https://github.com/marc4s/home-assistant-addons"
+arch:
+  - amd64
+
+panel_icon: "mdi:server"
+init: false
+hassio_api: true
+ingress: true
+ingress_stream: true
+ingress_entry: ui
+
+options:
+  log_level: "info"
+
+schema:
+  log_level: "list(trace|debug|info|notice|warning|error|fatal)"
+
+ports:
+  80/tcp: 9595
+
+ports_description:
+  80/tcp: "Web UI / API (also available via Ingress)"
+
+# For published releases, set this so Supervisor pulls the prebuilt image.
+# For local Dockerfile builds/testing, comment it out.
+image: "ghcr.io/marc4s/ipmi-server-native/{arch}"

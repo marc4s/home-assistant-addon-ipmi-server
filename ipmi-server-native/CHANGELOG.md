@@ -1,0 +1,125 @@
+## 2.7.6
+
+- Redirect browser visits to `GET /` without `host` to `/ui` (fixes standalone `:9595` showing "No hostname provided!" JSON instead of the Web UI) ([#43](https://github.com/ateodorescu/home-assistant-addons/issues/43))
+- Disable PHP-FPM/ipmitool core dumps and keep process cwd out of `public/` so crashes cannot fill the container with `core.*` files ([#44](https://github.com/ateodorescu/home-assistant-addons/issues/44))
+- Clarify standalone README: open `/ui` for the Web UI; `/` is the JSON API
+
+## 2.7.5
+
+- Drop `host_network`: outbound IPMI to LAN BMCs works from the container network (same as `ipmi-server-standalone`); restores normal `80/tcp → 9595` port mapping and standard Ingress on container port 8099, fixing host port collisions with other add-ons ([#43](https://github.com/ateodorescu/home-assistant-addons/issues/43))
+- Bump pinned Alpine `php84*` packages to `8.4.25-r0` (Alpine 3.24 repos dropped `8.4.24-r0`, which broke the Docker build with apk exit 10)
+- Upgrade `libcrypto3`/`libssl3`/`openssl-dev` to `3.5.8-r0` before building `ipmitool` (base image 21 still ships OpenSSL 3.5.7; Alpine 3.24 repos now only offer 3.5.8, so `apk add openssl` fails with exit 1)
+- Build `ipmitool` before installing `php84-openssl`, verify `lanplus` before removing build dependencies, and set `OPENSSL_CONF` only after the runtime config file is copied into the image
+- Align standalone image Dockerfile, nginx, and php-fpm with the add-on (Symfony front-controller routing, 120s timeouts, ipmitool build verification)
+
+## 2.7.4
+
+- Fix add-on Docker build failing with exit 141 (`pipefail` + `grep -q` SIGPIPE when verifying the ipmitool lanplus interface)
+
+## 2.7.3
+
+- Publish `linux/arm64` for the standalone image so HA Core on aarch64 (e.g. Raspberry Pi 5) can pull `ghcr.io/ateodorescu/ipmi-server-standalone` ([#42](https://github.com/ateodorescu/home-assistant-addons/issues/42))
+
+## 2.7.2
+
+- Web UI: add Extra params on saved connection profiles (e.g. `-C 3`) and pass them through to sensors, power commands, and custom commands
+
+## 2.7.1
+
+- Use a Unix socket for nginx ↔ PHP-FPM so host-network installs no longer collide with other services on TCP 9000 ([#40](https://github.com/ateodorescu/home-assistant-addons/issues/40))
+
+## 2.7.0
+
+- Restore pre-2.6.0 poll success semantics so older home-assistant-ipmi releases keep working without an integration upgrade ([#39](https://github.com/ateodorescu/home-assistant-addons/issues/39))
+- Do not return `success: true` with empty `sensors`/`states` when SDR collection failed (clients treated that as a complete poll and dropped all sensor entities)
+- Restore interface auto-detect: try the next IPMI interface when SDR fails instead of stopping after the first connection
+- Skip optional DCMI power reading when SDR already failed (faster auto-detect, same as 2.5.1)
+- Keep optional `sensor_types` (omit = full discovery, empty = power-only) and API metadata; those remain additive
+
+## 2.6.0
+
+- Resilient default poll (`GET /`): BMC info and chassis power remain required; FRU, SDR, and DCMI are best-effort and no longer fail the whole response when optional steps fail
+- Add optional `sensor_types` query param on `GET /` and `GET /sensors` (omit for full discovery, empty for power/device only, comma-separated list to filter categories)
+- Add API metadata on JSON responses (`api_version`, `addon_version`, `capabilities`) and `GET /meta` without BMC credentials
+- Skip FRU lookup when `sensor_types` is empty (power-only polls for limited BMCs such as NanoKVM)
+
+## 2.5.4
+
+- Include SDR/`sensor` readings that are not status `ok` (e.g. **0 RPM | cr** failed fans) when the value is still present; skip only empty / `no reading` rows ([#52](https://github.com/ateodorescu/home-assistant-ipmi/issues/52))
+- Expose per-sensor IPMI status codes in the API as `statuses` (e.g. `ok`, `cr`, `nc`)
+- Fix duplicate sensor suffix when disambiguating identical SDR names
+
+## 2.5.3
+
+- Listen on port **9595** under `host_network` (port maps like `80→9595` are ignored with host networking, which broke `localhost:9595` / integration defaults)
+- Point Ingress proxy at `127.0.0.1:9595`
+
+## 2.5.2
+
+- Replace Deploy workflow with a local build-only pipeline (no `repository-dispatch` / `DISPATCH_TOKEN`)
+
+## 2.5.1
+
+- Build `ipmitool` from source with OpenSSL/`lanplus` enabled (fixes missing RMCP+ interface)
+- Enable OpenSSL 3 legacy provider for older BMC cipher suites (e.g. `-C 3` on Super Micro)
+- Auto-retry common RMCP+ cipher suites when `lanplus` session setup fails
+- Raise nginx/`php-fpm` timeouts (120s) so Ingress sensor fetches are less likely to hit 504
+- Skip optional DCMI power reading when SDR collection already failed (faster auto-detect)
+- Fix custom-command credentials: pass secrets via headers and insert `-P`/`-y` before the IPMI subcommand
+- Default custom commands to `lanplus` when Interface is left on Auto detect
+- Align standalone image timeouts and `ipmitool` build with the add-on
+
+## 2.5.0
+
+- Add Ingress web UI at `/ui` for sensors, power commands, and custom `ipmitool` commands
+- Set `ingress_entry` to `ui` for Open Web UI (avoids a `//ui` double-slash 404 under Ingress)
+- Enable `host_network` so IPMI/UDP sessions can reach BMCs on the LAN from the add-on
+- Reduce secret leakage in add-on logs (disable PHP-FPM access logs; send PHP errors to a file instead of stderr)
+- Upgrade Symfony from 6.3 to 8.1 and require PHP 8.4+
+- Upgrade add-on base image to `ghcr.io/hassio-addons/base:21.0.0` (PHP 8.4)
+- Upgrade standalone image to `php:8.4-fpm-alpine`
+- Improve `/sensors` API responses with anonymized messages and debug output
+- Update add-on README wording and usage docs
+
+## 2.3.0
+
+- Fixed docker files generated by the release workflow.
+
+## 2.1.0
+
+- Fix NGINX version in Dockerfile. It fails installing in HASS VM otherwise by @shaunvaidyan in #32
+- New docker image for ipmi-server standalone to run the server in a standard docker environment.
+
+## 2.0.0
+
+- GH-22 Anonymize password in error output by @func0der
+- Let nginx also listen IPv6 Port by @LostAttractor
+- Remove vendor folder from repo and build it during docker build by @func0der
+- Gh 19 add docker build by @func0der
+
+## 1.2.16
+
+- update docker image to ghcr.io/hassio-addons/base:19.0.0
+- php 8.2
+
+## 1.2.9
+
+- add Kg encryption key and privilege level support to IpmiController
+
+## 1.2.7
+
+- extract all sensors that are returned by `sdr list full` command because
+  the `sensor` command does not work with all servers.
+
+## 1.2.0
+
+- extract all sensors available on the server, including power and current sensors
+- allow users to provide extra params in case they need them
+  (for example one can provide "-C 17" to correctly connect to the ipmi server)
+- ability to chose what interface type to use when connecting to the server
+  (if not provided then it will try to auto select it)
+- anonymize passwords in error messages
+
+## 1.0.0
+
+- Initial release

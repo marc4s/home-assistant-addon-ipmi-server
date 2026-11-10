@@ -17,7 +17,7 @@ It lets you monitor sensors and control power on supported machines, including w
 ## Installation
 
 1. Add this repository in Home Assistant:  
-   `https://github.com/ateodorescu/home-assistant-addons`
+   `https://github.com/marc4s/home-assistant-addons`
 2. Install **IPMItool server** from the add-on store.
 3. Start the add-on.
 

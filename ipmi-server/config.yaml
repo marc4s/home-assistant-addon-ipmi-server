@@ -1,11 +1,10 @@
 ---
 name: "IPMItool server"
-version: "2.7.6"
+version: "2.7.8"
 slug: "ipmi-server"
 description: "IPMItool server"
-url: "https://github.com/ateodorescu/home-assistant-addons"
+url: "https://github.com/marc4s/home-assistant-addons"
 arch:
-  - aarch64
   - amd64
 
 panel_icon: "mdi:server"
@@ -29,4 +28,4 @@ ports_description:
 
 # For published releases, set this so Supervisor pulls the prebuilt image.
 # For local Dockerfile builds/testing, comment it out.
-image: "ghcr.io/ateodorescu/ipmi-server/{arch}"
+image: "ghcr.io/marc4s/ipmi-server/{arch}"

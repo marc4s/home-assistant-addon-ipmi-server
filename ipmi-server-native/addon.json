@@ -1,0 +1,10 @@
+{
+  "name": "IPMItool Server native",
+  "version": "2.7.8",
+  "description": "IPMI server for remote management",
+  "url": "https://github.com/marc4s/home-assistant-addons",
+  "arch": ["amd64"],
+  "image": "marc4s/ipmi-server-native:latest",
+  "startup": "services",
+  "options": {}
+}
