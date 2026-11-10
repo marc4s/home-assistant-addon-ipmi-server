@@ -18,7 +18,7 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-COPY . ./
+
 # ✅ Copy your custom files BEFORE the build
 COPY build/Makefile.am /tmp/ipmitool/Makefile.am
 COPY build/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
@@ -56,12 +56,6 @@ RUN apk update && \
     mkdir -p /tmp/ipmitool && \
     cp /build/* /tmp/impitool/ && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
-    # ✅ Copy your custom Makefile.am into the extracted source
-    # This replaces the upstream one
-    COPY /tmp/Makefile.am /tmp/ipmitool/Makefile.am && \
-    # ✅ Copy your enterprise-numbers.txt
-    COPY /tmp/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt && \
-    # ✅ Now run bootstrap — it will use your custom Makefile.am
     cd /tmp/ipmitool && \
     ./bootstrap && \
     ./configure \
