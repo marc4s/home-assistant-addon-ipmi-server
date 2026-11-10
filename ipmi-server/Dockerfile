@@ -21,7 +21,7 @@ COPY build/ /tmp/build-files/
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-# Build ipmitool from source so we control OpenSSL/lanplus linking.
+# Build ipmitool from source with comprehensive debug output
 # hadolint ignore=DL3003,DL3018
 RUN apk update && \
     apk add --no-cache \
@@ -40,13 +40,18 @@ RUN apk update && \
         ncurses-dev \
         curl \
         patch && \
-    curl -fsSL -o /tmp/ipmitool.tar.gz \
+    set -x && \
+    echo "=== DEBUG: Starting ipmitool download ===" && \
+    curl -v -fsSL -o /tmp/ipmitool.tar.gz \
         "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" && \
+    echo "=== DEBUG: Download complete. Checking file info: ===" && \
+    ls -lh /tmp/ipmitool.tar.gz && \
     mkdir -p /tmp/ipmitool && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
-    cp /tmp/build-files/* /tmp/ipmitool/ && \
-    rm -rf /tmp/build-files && \
+    echo "=== DEBUG: Extraction complete. Directory contents: ===" && \
+    ls -la /tmp/ipmitool && \
     cd /tmp/ipmitool && \
+    sed -i 's|http://www.iana.org/assignments/enterprise-numbers|https://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am && \
     ./bootstrap && \
     ./configure \
         --prefix=/usr \
