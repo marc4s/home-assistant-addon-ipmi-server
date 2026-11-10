@@ -29,7 +29,7 @@ If you run Home Assistant in Linux/Docker **without HAOS** (including aarch64 / 
 
 ### Home Assistant integration
 
-Use this add-on with the companion [`ipmi` integration](https://github.com/ateodorescu/home-assistant-ipmi).
+Use this add-on with the companion [`ipmi` integration](https://github.com/marc4s/home-assistant-ipmi).
 
 ### Web UI
 

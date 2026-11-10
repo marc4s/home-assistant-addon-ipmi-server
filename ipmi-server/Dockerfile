@@ -20,8 +20,8 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY . ./
 # ✅ Copy your custom files BEFORE the build
-COPY Makefile.am /tmp/ipmitool/Makefile.am
-COPY enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
+COPY build/Makefile.am /tmp/ipmitool/Makefile.am
+COPY build/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
 
 # Set working directory
 WORKDIR /tmp/ipmitool
