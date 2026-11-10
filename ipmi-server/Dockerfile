@@ -46,9 +46,6 @@ RUN apk update && \
     mkdir -p /tmp/ipmitool && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
     cd /tmp/ipmitool && \
-    curl -fsSL -o /tmp/iana.patch \
-        "https://github.com/ipmitool/ipmitool/commit/1edb0e27e44196d1ebe449aba0b9be22d376bcb6.patch" && \
-    patch -p1 < /tmp/iana.patch && \
     ./bootstrap && \
     ./configure \
         --prefix=/usr \
