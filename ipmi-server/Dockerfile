@@ -18,7 +18,9 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-COPY build /tmp/
+COPY . ./
+RUN dir -s
+
 
 # Build ipmitool from source so we control OpenSSL/lanplus linking.
 # Do NOT use --enable-internal-md5: that makes configure skip libcrypto and
@@ -46,6 +48,7 @@ RUN apk update && \
     curl -fsSL -o /tmp/ipmitool.tar.gz \
         "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" && \
     mkdir -p /tmp/ipmitool && \
+    cp /build/* /tmp/impitool/ && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
     # ✅ Copy your custom Makefile.am into the extracted source
     # This replaces the upstream one
