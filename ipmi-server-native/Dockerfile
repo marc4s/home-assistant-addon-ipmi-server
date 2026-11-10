@@ -15,9 +15,6 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
     LANG=C.UTF-8 \
     APP_DIR="/app"
 
-# Copy custom build files into a temporary container staging directory
-COPY build/ /tmp/build-files/
-
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
