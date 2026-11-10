@@ -30,3 +30,10 @@ jobs:
           context: ./ipmi-server
           push: false
           tags: local/ipmi-server:test
+
+      - name: Build Local Test Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./ipmi-server-native
+          push: false
+          tags: local/ipmi-server-native:test

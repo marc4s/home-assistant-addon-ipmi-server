@@ -1,5 +1,6 @@
 # 1. ARGs used in FROM must be at the very top
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:21.0.11
+#ARG BUILD_FROM=ghcr.io/hassio-addons/base:21.0.11
+ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
 
 # 2. Define the composer stage
 FROM composer:2.8.5 AS composer_stage
@@ -23,14 +24,14 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Build ipmitool from source without executing cross-compiled binaries during build
 # hadolint ignore=DL3003,DL3018
-RUN apk update && \
-    apk add --no-cache \
+# Install runtime dependencies and build toolchain virtual package
+RUN apk add --no-cache \
         libcrypto3 \
         libssl3 \
         readline \
         ncurses \
-        libgcc && \
-    apk add --no-cache --virtual .ipmitool-build \
+        libgcc \
+    && apk add --no-cache --virtual .ipmitool-build \
         build-base \
         automake \
         autoconf \
@@ -39,28 +40,27 @@ RUN apk update && \
         readline-dev \
         ncurses-dev \
         curl \
-        patch && \
-    curl -fsSL -o /tmp/ipmitool.tar.gz \
-        "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" && \
-    mkdir -p /tmp/ipmitool && \
-    tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
-    cd /tmp/ipmitool && \
-    sed -i 's|http://www.iana.org/assignments/enterprise-numbers|https://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am && \
-    ./bootstrap && \
-    ./configure \
+        git \
+    && curl -fsSL -o /tmp/ipmitool.tar.gz \
+        "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" \
+    && mkdir -p /tmp/ipmitool \
+    && tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 \
+    && cd /tmp/ipmitool \
+    && sed -i 's|http://www.iana.org/assignments/enterprise-numbers|https://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am \
+    && ./bootstrap \
+    && ./configure \
         --prefix=/usr \
         --bindir=/usr/sbin \
         --enable-intf-lan \
         --enable-intf-lanplus \
         --enable-intf-open \
         --disable-intf-usb \
-        --disable-internal-md5 && \
-    make -j"$(nproc)" && \
-    make install && \
-    cd / && \
-    rm -rf /tmp/ipmitool /tmp/ipmitool.tar.gz && \
-    apk del .ipmitool-build && \
-    echo "ipmitool build complete"
+        --disable-internal-md5 \
+    && make \
+    && make install \
+    && cd / \
+    && rm -rf /tmp/ipmitool /tmp/ipmitool.tar.gz \
+    && apk del .ipmitool-build
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
