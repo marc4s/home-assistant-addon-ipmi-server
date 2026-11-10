@@ -46,6 +46,7 @@ RUN apk update && \
     mkdir -p /tmp/ipmitool && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
     cd /tmp/ipmitool && \
+    sed -i 's|http://www.iana.org/assignments/enterprise-numbers\.|http://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am && \
     ./bootstrap && \
     ./configure \
         --prefix=/usr \
