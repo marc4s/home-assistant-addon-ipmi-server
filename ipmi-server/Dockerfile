@@ -19,7 +19,13 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 COPY . ./
-RUN dir -s
+# ✅ Copy your custom files BEFORE the build
+COPY Makefile.am /tmp/ipmitool/Makefile.am
+COPY enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt
+
+# Set working directory
+WORKDIR /tmp/ipmitool
+
 
 
 # Build ipmitool from source so we control OpenSSL/lanplus linking.
