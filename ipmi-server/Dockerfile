@@ -18,6 +18,7 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+
 # Build ipmitool from source so we control OpenSSL/lanplus linking.
 # Do NOT use --enable-internal-md5: that makes configure skip libcrypto and
 # disables the lanplus (IPMI v2 / RMCP+) interface entirely.
@@ -45,8 +46,13 @@ RUN apk update && \
         "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" && \
     mkdir -p /tmp/ipmitool && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
+    # ✅ Copy your custom Makefile.am into the extracted source
+    # This replaces the upstream one
+    COPY Makefile.am /tmp/ipmitool/Makefile.am && \
+    # ✅ Copy your enterprise-numbers.txt
+    COPY enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt && \
+    # ✅ Now run bootstrap — it will use your custom Makefile.am
     cd /tmp/ipmitool && \
-    sed -i 's|http://www.iana.org/assignments/enterprise-numbers\.|http://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am && \
     ./bootstrap && \
     ./configure \
         --prefix=/usr \
@@ -61,7 +67,7 @@ RUN apk update && \
     ipmitool -V && \
     (ipmitool -h 2>&1 || true) | grep -Fq 'lanplus' && \
     cd / && \
-    rm -rf /tmp/ipmitool /tmp/ipmitool.tar.gz /tmp/iana.patch && \
+    rm -rf /tmp/ipmitool /tmp/ipmitool.tar.gz && \
     apk del .ipmitool-build && \
     echo "ipmitool lanplus interface OK"
 
