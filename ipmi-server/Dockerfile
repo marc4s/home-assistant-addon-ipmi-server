@@ -18,6 +18,7 @@ ENV S6_CMD_WAIT_FOR_SERVICES=1 \
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+COPY build /tmp/
 
 # Build ipmitool from source so we control OpenSSL/lanplus linking.
 # Do NOT use --enable-internal-md5: that makes configure skip libcrypto and
@@ -48,9 +49,9 @@ RUN apk update && \
     tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 && \
     # ✅ Copy your custom Makefile.am into the extracted source
     # This replaces the upstream one
-    COPY Makefile.am /tmp/ipmitool/Makefile.am && \
+    COPY /tmp/Makefile.am /tmp/ipmitool/Makefile.am && \
     # ✅ Copy your enterprise-numbers.txt
-    COPY enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt && \
+    COPY /tmp/enterprise-numbers.txt /tmp/ipmitool/enterprise-numbers.txt && \
     # ✅ Now run bootstrap — it will use your custom Makefile.am
     cd /tmp/ipmitool && \
     ./bootstrap && \
