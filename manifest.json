@@ -1,6 +1,6 @@
 {
-  "name": "Marc's Home Assistant Add-ons",
-  "url": "https://github.com/marc4s/home-assistant-addons",
+  "name": "IPMItool Server",
+  "url": "https://github.com/marc4s/home-assistant-addon-ipmi-server",
   "maintainer": "marc4s",
   "version": "2.7.8"
 }
