@@ -1,6 +1,5 @@
 # 1. ARGs used in FROM must be at the very top
-#ARG BUILD_FROM=ghcr.io/hassio-addons/base:21.0.11
-ARG BUILD_FROM=ghcr.io/home-assistant/amd64-base:latest
+ARG BUILD_FROM=ghcr.io/hassio-addons/base:21.0.11
 
 # 2. Define the composer stage
 FROM composer:2.8.5 AS composer_stage
