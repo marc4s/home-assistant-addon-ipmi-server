@@ -114,8 +114,6 @@ jobs:
 
       - name: 🚀 Run YAMLLint
         uses: frenck/action-yamllint@34b4bbcaeabedcfefad6adea8c5bbc42af0e2d47
-        with:
-          config: .github/workflows/.yamllint
 
   lint-prettier:
     name: Prettier
