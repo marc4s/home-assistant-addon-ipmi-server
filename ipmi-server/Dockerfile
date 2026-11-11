@@ -24,22 +24,23 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # Build ipmitool from source without executing cross-compiled binaries during build
 # hadolint ignore=DL3003,DL3018
 # Install runtime dependencies and build toolchain virtual package
+WORKDIR /tmp
 RUN apk add --no-cache \
-        libcrypto3 \
-        libssl3 \
-        readline \
-        ncurses \
-        libgcc \
+        libcrypto3=3.3.4-r1 \
+        libssl3=3.3.4-r1 \
+        readline=8.2-r4 \
+        ncurses=6.4_p20240420-r2 \
+        libgcc=1.2.0-r1 \
     && apk add --no-cache --virtual .ipmitool-build \
-        build-base \
-        automake \
-        autoconf \
-        libtool \
-        openssl-dev \
-        readline-dev \
-        ncurses-dev \
-        curl \
-        git \
+        build-base=1.0-r1 \
+        automake=1.17.2-r0 \
+        autoconf=2.72-r1 \
+        libtool=2.5.4-r1 \
+        openssl-dev=3.3.4-r1 \
+        readline-dev=8.2-r4 \
+        ncurses-dev=6.4_p20240420-r2 \
+        curl=8.11.0-r0 \
+        git=2.47.0-r0 \
     && curl -fsSL -o /tmp/ipmitool.tar.gz \
         "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" \
     && mkdir -p /tmp/ipmitool \
@@ -63,16 +64,16 @@ RUN apk add --no-cache \
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
-        nginx \
-        php84 \
-        php84-fpm \
-        php84-openssl \
-        php84-ctype \
-        php84-session \
-        php84-tokenizer \
-        php84-opcache \
-        php84-iconv \
-        php84-xml && \
+        nginx=1.26.2-r0 \
+        php84=8.4.2-r0 \
+        php84-fpm=8.4.2-r0 \
+        php84-openssl=8.4.2-r0 \
+        php84-ctype=8.4.2-r0 \
+        php84-session=8.4.2-r0 \
+        php84-tokenizer=8.4.2-r0 \
+        php84-opcache=8.4.2-r0 \
+        php84-iconv=8.4.2-r0 \
+        php84-xml=8.4.2-r0 && \
     mkdir -p /app/cache /app/var/cache/prod /app/var/log /var/tmp/nginx && \
     chmod -R 777 /app/var/
 
@@ -88,8 +89,8 @@ COPY --from=composer_stage /usr/bin/composer /usr/bin/composer
 # Install app dependencies and clean up
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
-        php84-phar \
-        php84-mbstring && \
+        php84-phar=8.4.2-r0 \
+        php84-mbstring=8.4.2-r0 && \
     php84 /usr/bin/composer --working-dir /app install && \
     rm -rf /app/var/cache/* && \
     apk del \
