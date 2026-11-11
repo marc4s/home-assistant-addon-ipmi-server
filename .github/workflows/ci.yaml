@@ -1,6 +1,10 @@
 ---
 name: CI
 
+permissions:
+  actions: read
+  security-events: write
+
 # yamllint disable-line rule:truthy
 on:
   push:
