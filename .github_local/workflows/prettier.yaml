@@ -1,0 +1,21 @@
+---
+name: Formatting
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check formatting (Warn only)
+        uses: creyD/prettier_action@v4.3
+        continue-on-error: true
+        with:
+          prettier_options: --check **/*.{js,md,yaml,yml}
