@@ -4,6 +4,8 @@ name: CI
 permissions:
   actions: read
   security-events: write
+  contents: read
+  packages: read
 
 # yamllint disable-line rule:truthy
 on:
