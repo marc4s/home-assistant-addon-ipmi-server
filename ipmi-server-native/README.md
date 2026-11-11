@@ -12,7 +12,7 @@ It lets you monitor sensors and control power on supported machines, including w
 
 - JSON API for device info, sensors, power actions, and custom `ipmitool` commands
 - Web UI via Home Assistant Ingress (**Open Web UI**) for sensors, power commands, and custom commands
-- Optional direct access on host port `9595` (also available via Ingress)
+- Optional direct access on host port `9596` (also available via Ingress)
 
 ## Installation
 
@@ -46,7 +46,7 @@ You can call any `ipmitool` arguments through `/command`.
 Example:
 
 ```text
-http://YOUR_HASS_SERVER_IP:9595/command?params=-I%20lanplus%20-H%20YOUR_IPMI_SERVER_IP%20-U%20ADMIN%20-P%20YOUR_PASSWORD%20bmc%20info
+http://YOUR_HASS_SERVER_IP:9596/command?params=-I%20lanplus%20-H%20YOUR_IPMI_SERVER_IP%20-U%20ADMIN%20-P%20YOUR_PASSWORD%20bmc%20info
 ```
 
 That request runs:

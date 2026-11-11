@@ -11,14 +11,14 @@ docker pull ghcr.io/ateodorescu/ipmi-server-standalone:latest
 ## Run the container
 
 ```bash
-# Map container port 80 to host port 9595
-docker run -d -p 9595:80 --name ipmi-server-standalone ghcr.io/ateodorescu/ipmi-server-standalone:latest
+# Map container port 80 to host port 9596
+docker run -d -p 9596:80 --name ipmi-server-standalone ghcr.io/ateodorescu/ipmi-server-standalone:latest
 ```
 
 ## Web UI and API
 
-- **Web UI**: open `http://HOST:9595/ui` (or `http://HOST:9595/` in a browser — it redirects to `/ui`).
-- **JSON API**: `http://HOST:9595/?host=BMC_IP&user=...&password=...` (same routes as the Home Assistant add-on).
+- **Web UI**: open `http://HOST:9596/ui` (or `http://HOST:9596/` in a browser — it redirects to `/ui`).
+- **JSON API**: `http://HOST:9596/?host=BMC_IP&user=...&password=...` (same routes as the Home Assistant add-on).
 
 Use `http://`, not `https://`. The container serves plain HTTP on port 80.
 

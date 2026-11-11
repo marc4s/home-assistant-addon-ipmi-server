@@ -1,7 +1,7 @@
 ---
 name: "IPMItool server native"
-version: "2.7.7"
-slug: "ipmi-server"
+version: "2.7.8"
+slug: "ipmi-server-native"
 description: "IPMItool server native"
 url: "https://github.com/marc4s/home-assistant-addons"
 arch:
@@ -21,7 +21,7 @@ schema:
   log_level: "list(trace|debug|info|notice|warning|error|fatal)"
 
 ports:
-  80/tcp: 9595
+  80/tcp: 9596
 
 ports_description:
   80/tcp: "Web UI / API (also available via Ingress)"

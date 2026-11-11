@@ -40,7 +40,7 @@ Passwords are only sent to this add-on. They are anonymized as `####` in logs an
 
 ## HTTP API
 
-The service is published on host port **9595** (`80/tcp → 9595` inside the container). Ingress uses the standard add-on port 8099.
+The service is published on host port **9596** (`80/tcp → 9596` inside the container). Ingress uses the standard add-on port 8099.
 
 | Path                                                                    | Purpose                  |
 | ----------------------------------------------------------------------- | ------------------------ |
@@ -57,7 +57,7 @@ You can also pass secrets with headers: `X-Ipmi-Password`, `X-Ipmi-Kg-Key`.
 ### Example custom command
 
 ```text
-http://HOME_ASSISTANT_IP:9595/command?params=-I%20lanplus%20-H%20BMC_IP%20-U%20ADMIN%20-P%20PASSWORD%20bmc%20info
+http://HOME_ASSISTANT_IP:9596/command?params=-I%20lanplus%20-H%20BMC_IP%20-U%20ADMIN%20-P%20PASSWORD%20bmc%20info
 ```
 
 That runs:
@@ -70,9 +70,9 @@ URL-encode spaces and special characters in `params`. Responses are JSON (`succe
 
 ## Troubleshooting
 
-- **Integration falls back to RMCP / connection refused on `:9595`**: confirm the add-on is **started**. From Core, use `http://localhost` or the HA host LAN IP with port **9595** (not `172.30.0.x` Core container IPs, and not port 80). Prefer **Open Web UI** (Ingress) for browser access.
-- **Web UI in browser at `:9595`**: use **`http://`**, not `https://` (the add-on serves plain HTTP). Open **`/ui`** for the sensor form (browsers hitting **`/`** without BMC params are redirected there). **`/`** with `?host=...` remains the JSON API.
-- **Standalone image**: same URLs — `http://HOST:9595/ui` for the Web UI. Port mapping should be `9595:80`.
+- **Integration falls back to RMCP / connection refused on `:9596`**: confirm the add-on is **started**. From Core, use `http://localhost` or the HA host LAN IP with port **9596** (not `172.30.0.x` Core container IPs, and not port 80). Prefer **Open Web UI** (Ingress) for browser access.
+- **Web UI in browser at `:9596`**: use **`http://`**, not `https://` (the add-on serves plain HTTP). Open **`/ui`** for the sensor form (browsers hitting **`/`** without BMC params are redirected there). **`/`** with `?host=...` remains the JSON API.
+- **Standalone image**: same URLs — `http://HOST:9596/ui` for the Web UI. Port mapping should be `9596:80`.
 - **`bind() to 0.0.0.0:8099 failed (Address in use)`** in the log (add-on **2.5.0–2.7.4** with `host_network`): host port 8099 collided with another service; update to **2.7.5+**, which uses bridge networking and keeps Ingress on container port 8099 only.
 - **504 Gateway Timeout** under Ingress: the BMC call took too long (wrong interface, unreachable host, or auto-detect trying many types). Prefer a fixed `lanplus` interface.
 - **Unable to establish IPMI v2 / RMCP+ session**: check username/password, privilege, cipher suite (`-C 3` / `-C 17`), and that the BMC allows the Home Assistant host IP.

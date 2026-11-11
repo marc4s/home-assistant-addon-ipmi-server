@@ -10,7 +10,7 @@ name: Build Standalone Image
   workflow_dispatch:
 
 env:
-  REGISTRY_IMAGE: ghcr.io/${{ github.repository_owner }}/ipmi-server-standalone
+  REGISTRY_IMAGE: ghcr.io/marc4s/ipmi-server-standalone
 
 jobs:
   build:
