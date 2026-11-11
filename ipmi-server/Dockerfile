@@ -44,9 +44,12 @@ RUN apk add --no-cache \
     && curl -fsSL -o /tmp/ipmitool.tar.gz \
         "https://github.com/ipmitool/ipmitool/archive/refs/tags/IPMITOOL_1_8_19.tar.gz" \
     && mkdir -p /tmp/ipmitool \
-    && tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 \
-    && cd /tmp/ipmitool \
-    && sed -i 's|http://www.iana.org/assignments/enterprise-numbers|https://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am \
+    && tar -xzf /tmp/ipmitool.tar.gz -C /tmp/ipmitool --strip-components=1 "
+
+#   && cd /tmp/ipmitool \
+WORKDIR /tmp/ipmitool
+
+RUN sed -i 's|http://www.iana.org/assignments/enterprise-numbers|https://www.iana.org/assignments/enterprise-numbers.txt|g' Makefile.am \
     && ./bootstrap \
     && ./configure \
         --prefix=/usr \
@@ -57,10 +60,11 @@ RUN apk add --no-cache \
         --disable-intf-usb \
         --disable-internal-md5 \
     && make \
-    && make install \
-    && cd / \
-    && rm -rf /tmp/ipmitool /tmp/ipmitool.tar.gz \
-    && apk del .ipmitool-build
+    && make install "
+
+#    && cd / \
+#    && rm -rf /tmp/ipmitool /tmp/ipmitool.tar.gz \
+#    && apk del .ipmitool-build
 
 # hadolint ignore=DL3018
 RUN apk add --no-cache \
