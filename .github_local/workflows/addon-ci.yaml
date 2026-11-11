@@ -19,8 +19,8 @@ permissions:
 
 jobs:
   ci:
-#    uses: ./.github/workflows/app-ci.yaml
+    # uses: ./.github/workflows/app-ci.yaml
     uses: hassio-addons/workflows/.github/workflows/app-ci.yaml@main
-#https://github.com/hassio-addons/workflows/blob/main/.github/workflows/app-ci.yaml
+    # https://github.com/hassio-addons/workflows/blob/main/.github/workflows/app-ci.yaml
     with:
       slug: ${{ inputs.slug }}
